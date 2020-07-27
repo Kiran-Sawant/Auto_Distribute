@@ -1,6 +1,6 @@
 """For Symbols Checkout https://finance.yahoo.com/
-   Symbols are indicated in parenthesis ()
-   eg. S&P Futures: ES=F, Gold: GC=F, etc"""
+   Symbols are indicated in parenthesis (...)
+   eg. S&P Futures: (ES=F), Gold: (GC=F), etc"""
 
 import pandas as pd
 import pandas_datareader as pdr
@@ -15,7 +15,7 @@ tDeltas = {'1Y': dt.timedelta(days=365),
            '5Y': dt.timedelta(weeks=260.714),
            '10Y': dt.timedelta(weeks=521.429)}
 
-# Getting file name
+# Getting Symbol, timespan, etc.
 name = input("Enter symbol exactly as in Yahoo finance: ")
 print("Time Spans: 1Y, 2Y, 3Y, 4Y, 5Y, 10Y")
 delta = input("Enter the time span: ").upper()
