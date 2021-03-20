@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import xlwings as xl
 
 # Getting file name
-file_name = input("Enter file name: ")
-interval = float(input('Enter interval for O2O bin: '))
-interval_2 = float(input('Enter interval for H2L bin: '))
+# file_name = input("Enter file name: ")
+# interval = float(input('Enter interval for O2O bin: '))
+# interval_2 = float(input('Enter interval for H2L bin: '))
 
-# file_name = 'Datasets/MDAX D1 5Y.csv'
-# interval = 0.5
+file_name = 'Datasets/AEX D1 10Y.csv'
+interval = 0.5
+interval_2 = 0.5
 
 # reading & formatting CSV
 price_data = pd.read_csv(file_name, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
@@ -99,99 +100,103 @@ h2l_prob_table.columns = ['Probability %', 'Cum Probability %']
 h2l_probability_distribution = pd.concat([h2l_frequency_table, h2l_prob_table], axis=1)      # probability distribution
 
 #___________Plotting Histograms______________#
-fig, axis = plt.subplots(nrows=2, ncols=1, figsize=(6, 8))
-price_data['H2L %'].hist(bins=bin2, ax=axis[1])
-price_data['O2O %'].hist(bins=bin , ax=axis[0])
-fig.subplots_adjust(hspace=0.3)
+# fig, axis = plt.subplots(nrows=2, ncols=1, figsize=(6, 8))
+# price_data['H2L %'].hist(bins=bin2, ax=axis[1])
+# price_data['O2O %'].hist(bins=bin , ax=axis[0])
+# fig.subplots_adjust(hspace=0.3)
 
-axis[0].set_title('Open to Open Returns Distribution', fontsize=12)
-axis[0].set_xlabel('Returns', fontsize=10)
-axis[0].set_ylabel('Frequency', fontsize=10)
-axis[1].set_title('High to Low Returns Distribution', fontsize=12)
-axis[1].set_xlabel('Returns', fontsize=10)
-axis[1].set_ylabel('Frequency', fontsize=10)
+# axis[0].set_title('Open to Open Returns Distribution', fontsize=12)
+# axis[0].set_xlabel('Returns', fontsize=10)
+# axis[0].set_ylabel('Frequency', fontsize=10)
+# axis[1].set_title('High to Low Returns Distribution', fontsize=12)
+# axis[1].set_xlabel('Returns', fontsize=10)
+# axis[1].set_ylabel('Frequency', fontsize=10)
 
 #_____________Description______________#
 
 def descriptor(df, col_name):
+    
     description = df[col_name].describe().to_dict()
+    description['range'] = description['max'] - description['min']
     description['kertosis'] = df[col_name].kurtosis()
     description['skew'] = df[col_name].skew()
     description['median'] = df[col_name].median()
     description['Sample Variance'] = df[col_name].var()
-    
+    description.pop('25%')
+    description.pop('50%')
+    description.pop('75%')
     return pd.Series(description)
 
 open_description = descriptor(price_data, 'O2O %')                   # Descriptions
 h2l_description = descriptor(price_data, 'H2L %')
 
 #______________Averages________________#
-# average open 2 open return
-avgO2O = price_data['O2O %'].mean()
-avgh2l = price_data['H2L %'].mean()
+# # average open 2 open return
+# avgO2O = price_data['O2O %'].mean()
+# avgh2l = price_data['H2L %'].mean()
 
-# boolean Series
-positive_mask = price_data['O2O %'] > 0
-negative_mask = price_data['O2O %'] < 0
+# # boolean Series
+# positive_mask = price_data['O2O %'] > 0
+# negative_mask = price_data['O2O %'] < 0
 
-pos_ret = price_data[positive_mask]['O2O %'].mean()
-neg_ret = price_data[negative_mask]['O2O %'].mean()
-pos_count = price_data[positive_mask]['O2O %'].count()
-neg_count = price_data[negative_mask]['O2O %'].count()
+# pos_ret = price_data[positive_mask]['O2O %'].mean()
+# neg_ret = price_data[negative_mask]['O2O %'].mean()
+# pos_count = price_data[positive_mask]['O2O %'].count()
+# neg_count = price_data[negative_mask]['O2O %'].count()
 
-avg_df = pd.DataFrame([(pos_ret, pos_count), (neg_ret, neg_count)], columns=['Return', 'Count'])
-avg_df.index = ['Pos', 'Neg']
-avg_df['Count%'] = avg_df['Count'] / len(price_data)
-avg_df['Adjusted ret'] = avg_df['Return'] * avg_df['Count%']          # Averages table
+# avg_df = pd.DataFrame([(pos_ret, pos_count), (neg_ret, neg_count)], columns=['Return', 'Count'])
+# avg_df.index = ['Pos', 'Neg']
+# avg_df['Count%'] = avg_df['Count'] / len(price_data)
+# avg_df['Adjusted ret'] = avg_df['Return'] * avg_df['Count%']          # Averages table
 
 #____________Standard-Deviation______________#
-upper = dict()
-lower = dict()
-for i in range(1, 4):
-    upper[i] = (i * price_data['O2O %'].std()) + avgO2O
-    lower[i] = avgO2O - (i * price_data['O2O %'].std())
+# upper = dict()
+# lower = dict()
+# for i in range(1, 4):
+#     upper[i] = (i * price_data['O2O %'].std()) + avgO2O
+#     lower[i] = avgO2O - (i * price_data['O2O %'].std())
 
-up_std = pd.Series(upper)
-low_std = pd.Series(lower)
+# up_std = pd.Series(upper)
+# low_std = pd.Series(lower)
 
-std_dev = pd.concat([up_std, low_std], axis=1)
-std_dev.columns = ['upper', 'lower']
+# std_dev = pd.concat([up_std, low_std], axis=1)
+# std_dev.columns = ['upper', 'lower']
 
-# frequency of Returns under std-dev 1, 2 & 3.
-std_1 = len(price_data[price_data['O2O %'].between(std_dev.iloc[0, 1], std_dev.iloc[0, 0])])
-std_2 = len(price_data[price_data['O2O %'].between(std_dev.iloc[1, 1], std_dev.iloc[1, 0])])
-std_3 = len(price_data[price_data['O2O %'].between(std_dev.iloc[2, 1], std_dev.iloc[2, 0])])
-# frequency of Returns as a percentage of sample-size
-tup_1 = (std_1, std_1 / len(price_data))
-tup_2 = (std_2, std_2 / len(price_data))
-tup_3 = (std_3, std_3 / len(price_data))
+# # frequency of Returns under std-dev 1, 2 & 3.
+# std_1 = len(price_data[price_data['O2O %'].between(std_dev.iloc[0, 1], std_dev.iloc[0, 0])])
+# std_2 = len(price_data[price_data['O2O %'].between(std_dev.iloc[1, 1], std_dev.iloc[1, 0])])
+# std_3 = len(price_data[price_data['O2O %'].between(std_dev.iloc[2, 1], std_dev.iloc[2, 0])])
+# # frequency of Returns as a percentage of sample-size
+# tup_1 = (std_1, std_1 / len(price_data))
+# tup_2 = (std_2, std_2 / len(price_data))
+# tup_3 = (std_3, std_3 / len(price_data))
 
-df = pd.DataFrame([tup_1, tup_2, tup_3], columns=['count', 'percentage'])
-df.index = [1, 2, 3]                                           # std-dev table
-df.index.name = 'Std_dev'
-stdDev_table = pd.concat([std_dev, df], axis=1)
+# df = pd.DataFrame([tup_1, tup_2, tup_3], columns=['count', 'percentage'])
+# df.index = [1, 2, 3]                                           # std-dev table
+# df.index.name = 'Std_dev'
+# stdDev_table = pd.concat([std_dev, df], axis=1)
 
 # print(price_data)
 # print(probability_distribution)
 # print(open_description)
-# print(h2l_description)
+print(h2l_description)
 # print(avg_df)
 # print(stdDev_table)
 
-work_book = xl.Book()
-wbSheet = work_book.sheets.add(file_name.strip('.csv'))
+# work_book = xl.Book()
+# wbSheet = work_book.sheets.add(file_name.strip('.csv'))
 
-wbSheet.range('A9').value = price_data
-wbSheet.range('H9').options(index=False).value = probability_distribution
-wbSheet.range(f'H{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
-wbSheet.range('M10').value = open_description
-wbSheet.range(f'M{len(bin_Series) + 13}').value = h2l_description
-wbSheet.range('B1').value = "Open 2 Open average returns"
-wbSheet.range('C1').value = avgO2O
-wbSheet.range('B4').value = "High 2 Low returns"
-wbSheet.range('C4').value = avgh2l
-wbSheet.range('E1').value = avg_df
-wbSheet.range('L1').value = stdDev_table
-wbSheet.pictures.add(fig)
+# wbSheet.range('A9').value = price_data
+# wbSheet.range('H9').options(index=False).value = probability_distribution
+# wbSheet.range(f'H{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
+# wbSheet.range('M10').value = open_description
+# wbSheet.range(f'M{len(bin_Series) + 13}').value = h2l_description
+# wbSheet.range('B1').value = "Open 2 Open average returns"
+# wbSheet.range('C1').value = avgO2O
+# wbSheet.range('B4').value = "High 2 Low returns"
+# wbSheet.range('C4').value = avgh2l
+# wbSheet.range('E1').value = avg_df
+# wbSheet.range('L1').value = stdDev_table
+# wbSheet.pictures.add(fig)
 
-work_book.save("Output/"+file_name + " distribution.xlsx")
+# work_book.save("Output/"+file_name + " distribution.xlsx")
