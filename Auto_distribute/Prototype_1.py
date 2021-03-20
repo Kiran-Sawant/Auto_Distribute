@@ -1,11 +1,13 @@
+import tkinter as tk
+from tkinter import filedialog
 import pandas as pd
 import matplotlib.pyplot as plt
 import xlwings as xl
 
 # Getting file name
 file_name = input("Enter file name: ")
-interval = float(input('Enter interval for O2O bin: '))
-interval_2 = float(input('Enter interval for H2L bin: '))
+interval = float(input('Enter interval for O2O bin in percentage: '))
+interval_2 = float(input('Enter interval for H2L bin in percentage: '))
 
 # file_name = 'Datasets/MDAX D1 5Y.csv'
 # interval = 0.5

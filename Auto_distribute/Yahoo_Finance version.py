@@ -19,8 +19,8 @@ tDeltas = {'1Y': dt.timedelta(days=365),
 name = input("Enter symbol exactly as in Yahoo finance: ")
 print("Time Spans: 1Y, 2Y, 3Y, 4Y, 5Y, 10Y")
 delta = input("Enter the time span: ").upper()
-interval = float(input('Enter interval for O2O bin: '))
-interval_2 = float(input('Enter interval for H2L bin: '))
+interval = float(input('Enter interval for O2O bin in percentage: '))
+interval_2 = float(input('Enter interval for H2L bin in percentage: '))
 
 #_________Setting Dates_________#
 now = dt.date.today()
