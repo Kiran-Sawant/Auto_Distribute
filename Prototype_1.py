@@ -38,6 +38,7 @@ bin = [min]
 for i in range(k):
     min += interval
     bin.append(min)
+
 bin_Series = pd.Series(bin).round(3)              # Bin Series
 
 #___Calculating O2O Probability distribution_____#
@@ -118,11 +119,16 @@ axis[1].set_ylabel('Frequency', fontsize=10)
 #_____________Description______________#
 
 def descriptor(df, col_name):
+
     description = df[col_name].describe().to_dict()
+    description['range'] = description['max'] - description['min']
     description['kertosis'] = df[col_name].kurtosis()
     description['skew'] = df[col_name].skew()
     description['median'] = df[col_name].median()
     description['Sample Variance'] = df[col_name].var()
+    description.pop('25%')
+    description.pop('50%')
+    description.pop('75%')
     
     return pd.Series(description)
 
