@@ -66,7 +66,11 @@ def distribute():
     global o2o_precision
     global h2l_precision
 
-    price_data = pd.read_csv(file_location, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
+    if file_location != None:
+        price_data = pd.read_csv(file_location, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
+    else:
+        errorVar.set('File not selected!')
+    
 
     try:            # If price columns are in string format
         price_data['Open'] = price_data['Open'].str.split(',').str.join('').astype('float')
@@ -158,33 +162,34 @@ def distribute():
 
     #______________Averages________________#
     # average open 2 open return
-    avgO2O = price_data['O2O %'].mean()
-    avgh2l = price_data['H2L %'].mean()
+    avgO2O = price_data['O2O %'].mean().__round__(3)
+    avgh2l = price_data['H2L %'].mean().__round__(3)
 
     # boolean Series
     positive_mask = price_data['O2O %'] > 0
     negative_mask = price_data['O2O %'] < 0
 
-    pos_ret = price_data[positive_mask]['O2O %'].mean()
-    neg_ret = price_data[negative_mask]['O2O %'].mean()
+    pos_ret = price_data[positive_mask]['O2O %'].mean().__round__(3)
+    neg_ret = price_data[negative_mask]['O2O %'].mean().__round__(3)
     pos_count = price_data[positive_mask]['O2O %'].count()
     neg_count = price_data[negative_mask]['O2O %'].count()
 
-    avg_df = pd.DataFrame([(pos_ret, pos_count), (neg_ret, neg_count)], columns=['Return', 'Count'])
+    avg_df = pd.DataFrame([(pos_ret, pos_count), (neg_ret, neg_count)], columns=['Return%', 'Count'])
     avg_df.index = ['Pos', 'Neg']
-    avg_df['Count%'] = avg_df['Count'] / len(price_data)
-    avg_df['Adjusted ret'] = avg_df['Return'] * avg_df['Count%']          # TODO merge Averages table
+    avg_df['Count%'] = ((avg_df['Count'] / len(price_data)) * 100).__round__(2)
+    avg_df['Adj return%'] = ((avg_df['Return%'] * avg_df['Count%']) / 100).__round__(3)         # TODO merge Averages table
 
     #____________Standard-Deviation______________#
     upper = dict()
     lower = dict()
     for i in range(1, 4):
-        upper[i] = (i * price_data['O2O %'].std()) + avgO2O
-        lower[i] = avgO2O - (i * price_data['O2O %'].std())
+        upper[i] = ((i * price_data['O2O %'].std()) + avgO2O).__round__(3)
+        lower[i] = (avgO2O - (i * price_data['O2O %'].std())).__round__(3)
 
+    # Creating a Series of upper & lower Std dev
     up_std = pd.Series(upper)
     low_std = pd.Series(lower)
-
+    # Creating a DataFrame of upper & lower Std dev
     std_dev = pd.concat([up_std, low_std], axis=1)
     std_dev.columns = ['upper', 'lower']
 
@@ -193,11 +198,11 @@ def distribute():
     std_2 = len(price_data[price_data['O2O %'].between(std_dev.iloc[1, 1], std_dev.iloc[1, 0])])
     std_3 = len(price_data[price_data['O2O %'].between(std_dev.iloc[2, 1], std_dev.iloc[2, 0])])
     # frequency of Returns as a percentage of sample-size
-    tup_1 = (std_1, std_1 / len(price_data))
-    tup_2 = (std_2, std_2 / len(price_data))
-    tup_3 = (std_3, std_3 / len(price_data))
+    tup_1 = (std_1, ((std_1 / len(price_data)) * 100).__round__(3))
+    tup_2 = (std_2, ((std_2 / len(price_data)) * 100).__round__(3))
+    tup_3 = (std_3, ((std_3 / len(price_data)) * 100).__round__(3))
 
-    df = pd.DataFrame([tup_1, tup_2, tup_3], columns=['count', 'percentage'])
+    df = pd.DataFrame([tup_1, tup_2, tup_3], columns=['count', 'percentage%'])
     df.index = [1, 2, 3]
     df.index.name = 'Std_dev'
     stdDev_table = pd.concat([std_dev, df], axis=1)                 # TODO merge std-dev table
@@ -215,9 +220,9 @@ def distribute():
     wbSheet.range(f'H{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
     wbSheet.range('M10').value = open_description
     wbSheet.range(f'M{len(bin_Series) + 13}').value = h2l_description
-    wbSheet.range('B1').value = "Open 2 Open average returns"
+    wbSheet.range('B1').value = "Open 2 Open returns %"
     wbSheet.range('C1').value = avgO2O
-    wbSheet.range('B4').value = "High 2 Low returns"
+    wbSheet.range('B4').value = "High 2 Low returns %"
     wbSheet.range('C4').value = avgh2l
     wbSheet.range('E1').value = avg_df
     wbSheet.range('L1').value = stdDev_table
@@ -231,6 +236,8 @@ mainWindow.geometry('360x240')
 mainWindow.title('Auto Distributer')
 
 #_____Creating widgets______#
+# Variables
+errorVar = tk.Variable(mainWindow)
 # Buttons_____________#
 select_btn = tk.Button(mainWindow, text='Select File', command=selector)
 save_btn = tk.Button(mainWindow, text='Distribute', command=distribute)
@@ -238,6 +245,7 @@ save_btn = tk.Button(mainWindow, text='Distribute', command=distribute)
 o2o_label = tk.Label(mainWindow, text='Select Open to Open bin precision:')
 h2l_label = tk.Label(mainWindow, text='Select High to Low bin precision: ')
 blank_label = tk.Label(mainWindow, text='  ')
+error_label = tk.Label(mainWindow, text=errorVar)
 # Scales______________#
 o2o_scale = tk.Scale(mainWindow, from_=0.1, to=2, resolution=0.1, orient=tk.HORIZONTAL)
 h2l_scale = tk.Scale(mainWindow, from_=0.1, to=2, resolution=0.1, orient=tk.HORIZONTAL)
@@ -256,6 +264,8 @@ h2l_scale.grid(row=4, column=0, sticky='ew', columnspan=2)
 
 select_btn.grid(row=5, column=0, sticky='w', columnspan=2)
 save_btn.grid(row=5, column=1, padx=50)
+
+error_label.grid(row=6, column=0, columnspan=2)
 
 mainWindow.mainloop()
 
