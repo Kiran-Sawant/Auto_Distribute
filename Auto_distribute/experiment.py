@@ -1,3 +1,4 @@
+from tkinter import filedialog
 import pandas as pd
 import matplotlib.pyplot as plt
 import xlwings as xl
@@ -7,7 +8,7 @@ import xlwings as xl
 # interval = float(input('Enter interval for O2O bin: '))
 # interval_2 = float(input('Enter interval for H2L bin: '))
 
-file_name = 'Datasets/AEX D1 10Y.csv'
+file_name = filedialog.askopenfilename(filetypes=[('csv files', '*.csv')])
 interval = 0.5
 interval_2 = 0.5
 
