@@ -1,16 +1,17 @@
-import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
 import matplotlib.pyplot as plt
 import xlwings as xl
 
 # Getting file name
-file_name = input("Enter file name: ")
+file_name = filedialog.askopenfilename(filetypes=[('csv files', '*.csv')])
 interval = float(input('Enter interval for O2O bin in percentage: '))
 interval_2 = float(input('Enter interval for H2L bin in percentage: '))
 
+# Use this while testing
 # file_name = 'Datasets/MDAX D1 5Y.csv'
-# interval = 0.5
+# interval = 0.2
+# interval_2 = 0.2
 
 # reading & formatting CSV
 price_data = pd.read_csv(file_name, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
@@ -183,15 +184,19 @@ df.index = [1, 2, 3]                                           # std-dev table
 df.index.name = 'Std_dev'
 stdDev_table = pd.concat([std_dev, df], axis=1)
 
+#____________________Testing____________________#
+# print(file_name.split('/')[-1].strip('.csv'))
 # print(price_data)
 # print(probability_distribution)
 # print(open_description)
 # print(h2l_description)
 # print(avg_df)
 # print(stdDev_table)
+# print(file_name.strip('.csv') + ' distribution.xlsx')
 
+#________________________Writing to spreadsheet__________________________#
 work_book = xl.Book()
-wbSheet = work_book.sheets.add(file_name.strip('.csv'))
+wbSheet = work_book.sheets.add(file_name.split('/')[-1].strip('.csv'))
 
 wbSheet.range('A9').value = price_data
 wbSheet.range('H9').options(index=False).value = probability_distribution
