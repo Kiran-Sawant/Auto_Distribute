@@ -29,22 +29,23 @@ def h2l_precision_level(value):
     global h2l_precision
     h2l_precision = float(value)
 
-def o2o_frequency(array, dataframe=None):
+def frequency(array, dataframe=None, col_name=None):
     """Returns the frequency of values within
-    a given start & end range"""
+    a start & end range, in a given DataFrames column"""
 
     start = array[0]
     end = array[1]
     
-    k = dataframe[dataframe['O2O %'].between(start, end, inclusive=False)]
-    return k['O2O %'].count()
+    k = dataframe[dataframe[col_name].between(start, end, inclusive=False)]
+    return k[col_name].count()
 
+""" depricated______________#
 def h2l_frequency(array, dataframe=None):
     start = array[0]
     end = array[1]
     
     k = dataframe[dataframe['H2L %'].between(start, end, inclusive=False)]
-    return k['H2L %'].count()
+    return k['H2L %'].count()"""
 
 #_____________Description______________#
 
@@ -106,7 +107,7 @@ def distribute():
 
     bin_Series = pd.Series(bin_).round(3)              # Bin Series
 
-    frequency_series = bin_Series.rolling(2).apply(o2o_frequency, raw=True, kwargs={'dataframe': price_data})
+    frequency_series = bin_Series.rolling(2).apply(frequency, raw=True, kwargs={'dataframe': price_data, 'col_name': 'O2O %'})
 
     frequency_table = pd.concat([bin_Series, frequency_series], axis=1)         # TODO merge Frequency Table
     frequency_table.columns = ['bin', 'Frequency']
@@ -134,7 +135,7 @@ def distribute():
         bin2.append(h2lmin)
     h2l_bin_Series = pd.Series(bin2).round(3)
 
-    h2l_frequency_series = h2l_bin_Series.rolling(2).apply(h2l_frequency, raw=True, kwargs={'dataframe': price_data})
+    h2l_frequency_series = h2l_bin_Series.rolling(2).apply(frequency, raw=True, kwargs={'dataframe': price_data, 'col_name': 'H2L %'})
 
     h2l_frequency_table = pd.concat([h2l_bin_Series, h2l_frequency_series], axis=1)         # TODO merge Frequency Table
     h2l_frequency_table.columns = ['bin', 'Frequency']
@@ -279,4 +280,4 @@ if __name__ == "__main__":
     print(f"Save Directory: {save_location}")
     print(f"o2o Precision: {o2o_precision}")
     print(f"h2l Precision: {h2l_precision}")
-    print(price_data)
+    # print(price_data)
