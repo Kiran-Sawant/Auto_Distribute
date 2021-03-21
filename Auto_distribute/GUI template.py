@@ -66,10 +66,9 @@ def distribute():
     global o2o_precision
     global h2l_precision
 
-    if file_location != None:
-        price_data = pd.read_csv(file_location, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
-    else:
-        errorVar.set('File not selected!')
+
+    price_data = pd.read_csv(file_location, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
+
     
 
     try:            # If price columns are in string format
@@ -237,7 +236,7 @@ mainWindow.title('Auto Distributer')
 
 #_____Creating widgets______#
 # Variables
-errorVar = tk.Variable(mainWindow)
+# errorVar = tk.Variable(mainWindow)
 # Buttons_____________#
 select_btn = tk.Button(mainWindow, text='Select File', command=selector)
 save_btn = tk.Button(mainWindow, text='Distribute', command=distribute)
@@ -245,7 +244,7 @@ save_btn = tk.Button(mainWindow, text='Distribute', command=distribute)
 o2o_label = tk.Label(mainWindow, text='Select Open to Open bin precision:')
 h2l_label = tk.Label(mainWindow, text='Select High to Low bin precision: ')
 blank_label = tk.Label(mainWindow, text='  ')
-error_label = tk.Label(mainWindow, text=errorVar)
+# error_label = tk.Label(mainWindow, text=errorVar)
 # Scales______________#
 o2o_scale = tk.Scale(mainWindow, from_=0.1, to=2, resolution=0.1, orient=tk.HORIZONTAL)
 h2l_scale = tk.Scale(mainWindow, from_=0.1, to=2, resolution=0.1, orient=tk.HORIZONTAL)
@@ -265,7 +264,7 @@ h2l_scale.grid(row=4, column=0, sticky='ew', columnspan=2)
 select_btn.grid(row=5, column=0, sticky='w', columnspan=2)
 save_btn.grid(row=5, column=1, padx=50)
 
-error_label.grid(row=6, column=0, columnspan=2)
+# error_label.grid(row=6, column=0, columnspan=2)
 
 mainWindow.mainloop()
 
