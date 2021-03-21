@@ -5,47 +5,51 @@ import matplotlib.pyplot as plt
 import xlwings as xl
 
 #__________Global Variables____________#
-file_location = None
-save_location = None
-o2o_precision = 0.1
-h2l_precision = 0.1
-price_data = None
+file_location = None                        # location of csv file
+save_location = None                        # location of distribution .xlsx file
+o2o_precision = 0.1                         # intervals in Open to open bin
+h2l_precision = 0.1                         # intervals in high to low bin
 
 def selector():
+    """Sets the file path of selected csv file"""
+
     global file_location
 
     file_location = filedialog.askopenfilename(filetypes=[('csv files', '*.csv')])
 
 def o2o_precision_level(value):
+    """Sets the Open to Open bin precision level from Scale widget"""
 
     global o2o_precision
     o2o_precision = float(value)
 
 def h2l_precision_level(value):
+    """Sets the High to Low bin precision level from Scale widget"""
 
     global h2l_precision
     h2l_precision = float(value)
 
-def o2o_frequency(array):
+def o2o_frequency(array, dataframe=None):
     """Returns the frequency of values within
     a given start & end range"""
 
     start = array[0]
     end = array[1]
     
-    k = price_data[price_data['O2O %'].between(start, end, inclusive=False)]
+    k = dataframe[dataframe['O2O %'].between(start, end, inclusive=False)]
     return k['O2O %'].count()
 
-def h2l_frequency(array):
+def h2l_frequency(array, dataframe=None):
     start = array[0]
     end = array[1]
     
-    k = price_data[price_data['H2L %'].between(start, end, inclusive=False)]
+    k = dataframe[dataframe['H2L %'].between(start, end, inclusive=False)]
     return k['H2L %'].count()
 
 #_____________Description______________#
 
 def descriptor(df, col_name):
+    """Returns a pd.Series of statistical description of a column of a dataframe."""
 
     description = df[col_name].describe().to_dict()
     description['range'] = description['max'] - description['min']
@@ -60,9 +64,11 @@ def descriptor(df, col_name):
     return pd.Series(description)
 
 def distribute():
+    """Asks for a save location and file name, and returns an excel file(.xlsx)
+    with probability distribution of open to open and high to low prices."""
+
     global save_location
     global file_location
-    global price_data
     global o2o_precision
     global h2l_precision
 
@@ -100,7 +106,7 @@ def distribute():
 
     bin_Series = pd.Series(bin_).round(3)              # Bin Series
 
-    frequency_series = bin_Series.rolling(2).apply(o2o_frequency, raw=True)
+    frequency_series = bin_Series.rolling(2).apply(o2o_frequency, raw=True, kwargs={'dataframe': price_data})
 
     frequency_table = pd.concat([bin_Series, frequency_series], axis=1)         # TODO merge Frequency Table
     frequency_table.columns = ['bin', 'Frequency']
@@ -128,7 +134,7 @@ def distribute():
         bin2.append(h2lmin)
     h2l_bin_Series = pd.Series(bin2).round(3)
 
-    h2l_frequency_series = h2l_bin_Series.rolling(2).apply(h2l_frequency, raw=True)
+    h2l_frequency_series = h2l_bin_Series.rolling(2).apply(h2l_frequency, raw=True, kwargs={'dataframe': price_data})
 
     h2l_frequency_table = pd.concat([h2l_bin_Series, h2l_frequency_series], axis=1)         # TODO merge Frequency Table
     h2l_frequency_table.columns = ['bin', 'Frequency']
