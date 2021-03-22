@@ -1,22 +1,24 @@
 import tkinter as tk
 from tkinter import filedialog
+import datetime as dt
 import pandas as pd
+import pandas_datareader as pdr
 import matplotlib.pyplot as plt
 import xlwings as xl
 
 #__________Global Variables____________#
-file_location = None                        # location of csv file
 save_location = None                        # location of distribution .xlsx file
 o2o_precision = 0.1                         # intervals in Open to open bin
 h2l_precision = 0.1                         # intervals in high to low bin
+delta = '1Y'
+tDeltas = {'1Y': dt.timedelta(days=365),
+           '2Y': dt.timedelta(days=365*2),
+           '3Y': dt.timedelta(days=365*3),
+           '4Y': dt.timedelta(days=365*4),
+           '5Y': dt.timedelta(weeks=260.714),
+           '10Y': dt.timedelta(weeks=521.429)}
 
-def selector():
-    """Sets the file path of selected csv file"""
-
-    global file_location
-
-    file_location = filedialog.askopenfilename(filetypes=[('csv files', '*.csv')])
-
+#___________GUI functions_______________#
 def o2o_precision_level(value):
     """Sets the Open to Open bin precision level from Scale widget"""
 
@@ -29,6 +31,7 @@ def h2l_precision_level(value):
     global h2l_precision
     h2l_precision = float(value)
 
+#________________Distribution Functions_________________#
 def frequency(array, dataframe=None, col_name=None):
     """Returns the frequency of values within
     a start & end range, in a given DataFrames column"""
@@ -36,18 +39,8 @@ def frequency(array, dataframe=None, col_name=None):
     start = array[0]
     end = array[1]
     
-    k = dataframe[dataframe[col_name].between(start, end, inclusive=False)]
+    k = dataframe[dataframe[col_name].between(start, end)]
     return k[col_name].count()
-
-""" depricated______________#
-def h2l_frequency(array, dataframe=None):
-    start = array[0]
-    end = array[1]
-    
-    k = dataframe[dataframe['H2L %'].between(start, end, inclusive=False)]
-    return k['H2L %'].count()"""
-
-#_____________Description______________#
 
 def descriptor(df, col_name):
     """Returns a pd.Series of statistical description of a column of a dataframe."""
@@ -69,12 +62,18 @@ def distribute():
     with probability distribution of open to open and high to low prices."""
 
     global save_location
-    global file_location
     global o2o_precision
     global h2l_precision
+    global tDeltas
+    security_name = symbol_var.get().upper()            # getting the symbol entered by the user.
 
+    # Setting Dates_________#
+    now = dt.date.today()
+    start = now - tDeltas[delta_var.get()]
 
-    price_data = pd.read_csv(file_location, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
+    # price_data = pd.read_csv(file_location, usecols=['Date', 'Open', 'High', 'Low'], parse_dates=['Date'], index_col=['Date'])
+    price_data = pdr.DataReader(security_name, data_source='yahoo', start=start, end=now)
+    price_data.drop(columns=['Volume', 'Adj Close'], inplace=True)
 
     
 
@@ -92,18 +91,28 @@ def distribute():
     price_data['O2O %'] = (price_data['Open'].pct_change() * 100).round(3)
     price_data['H2L %'] = (((price_data['High'] - price_data['Low'])/price_data['Low']) * 100).round(3)
 
+    # resorting it ot make it look good
+    price_data.sort_index(ascending=False, inplace=True)
+
     #____________O2O Probability Distribution______________#
-    # Creating bin for open 2 open
-    min_ = int(price_data['O2O %'].min() - o2o_precision)
-    max_ = int(price_data['O2O %'].max() + o2o_precision)
-    # Divisor
-    k = int(abs((min_ - max_)/o2o_precision))
+    # Creating bin for open 2 open___________#
+    # maximum & minimum values
+    min_ = price_data['O2O %'].min()
+    max_ = price_data['O2O %'].max()
+
+    # 5th largest & 5th smallest value
+    largest_5th = price_data['O2O %'].nlargest(5).iloc[-1]
+    smallest_5th = price_data['O2O %'].nsmallest(5).iloc[-1]
+
+    # Divisor (number of values in bin)
+    k = int(abs((smallest_5th - largest_5th)/o2o_precision))
 
     # creating bin series
-    bin_ = [min_]
-    for i in range(k):
-        min_ += o2o_precision
-        bin_.append(min_)
+    bin_ = [min_ - o2o_precision, smallest_5th, ]
+    for i in range(k + 1):
+        smallest_5th += o2o_precision
+        bin_.append(smallest_5th)
+    bin_.append(max_ + o2o_precision)
 
     bin_Series = pd.Series(bin_).round(3)              # Bin Series
 
@@ -122,21 +131,28 @@ def distribute():
     probability_distribution = pd.concat([frequency_table, prob_table], axis=1)      # TODO merge probability distribution
 
     #_______________Calculating H2L Probability distribution___________________#
-    h2lmin = int(price_data['H2L %'].min())
-    h2lmax = int(price_data['H2L %'].max() + h2l_precision)
+    # lowest & highest low to high returns
+    h2lmin = 0
+    h2lmax = price_data['H2L %'].max()
+
+    # 5th largest & smallest h2l returns
+    h2l_5th_largest = price_data['H2L %'].nlargest(5).iloc[-1]
 
     # Divisor
-    k2 = int(abs((h2lmax - h2lmin)/h2l_precision))
+    k2 = int(abs(h2l_5th_largest/h2l_precision))
 
     # creating bin series
-    bin2 = [h2lmin]
-    for i in range(k2):
+    bin2 = [0, ]
+    for i in range(k2 + 1):
         h2lmin += h2l_precision
         bin2.append(h2lmin)
-    h2l_bin_Series = pd.Series(bin2).round(3)
+    bin2.append(h2lmax + h2l_precision)
+    # creating a Series out of bin2 list
+    h2l_bin_Series = pd.Series(bin2).round(2)
 
+    # Counting frequency of bin values & making a series of it
     h2l_frequency_series = h2l_bin_Series.rolling(2).apply(frequency, raw=True, kwargs={'dataframe': price_data, 'col_name': 'H2L %'})
-
+    # Creating Bin Frequency table.
     h2l_frequency_table = pd.concat([h2l_bin_Series, h2l_frequency_series], axis=1)         # TODO merge Frequency Table
     h2l_frequency_table.columns = ['bin', 'Frequency']
     h2l_frequency_table.fillna(value=0, inplace=True)
@@ -215,17 +231,17 @@ def distribute():
 
     # asking save location
     save_location = filedialog.asksaveasfile(filetypes=[('Excel File', '*.xlsx')])
-    file_name = file_location.split('/')[-1].strip('.csv')
+    # file_name = file_location.split('/')[-1].strip('.csv')
 
     # #________________________Writing to spreadsheet__________________________#
     work_book = xl.Book()
-    wbSheet = work_book.sheets.add(file_name)
+    wbSheet = work_book.sheets.add(security_name)
 
     wbSheet.range('A9').value = price_data
-    wbSheet.range('H9').options(index=False).value = probability_distribution
-    wbSheet.range(f'H{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
-    wbSheet.range('M10').value = open_description
-    wbSheet.range(f'M{len(bin_Series) + 13}').value = h2l_description
+    wbSheet.range('I9').options(index=False).value = probability_distribution
+    wbSheet.range(f'I{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
+    wbSheet.range('O10').value = open_description
+    wbSheet.range(f'O{len(bin_Series) + 13}').value = h2l_description
     wbSheet.range('B1').value = "Open 2 Open returns %"
     wbSheet.range('C1').value = avgO2O
     wbSheet.range('B4').value = "High 2 Low returns %"
@@ -236,18 +252,25 @@ def distribute():
 
     work_book.save(save_location.name + '.xlsx')
 
+
 #_______Initializing GUI window_________#
 mainWindow = tk.Tk()
 mainWindow.geometry('360x240')
-mainWindow.title('Auto Distributer')
+mainWindow.title('Auto Distribute Y-finance')
 
 #_____Creating widgets______#
-# Variables
+# Variables___________#
 # errorVar = tk.Variable(mainWindow)
+symbol_var = tk.StringVar(mainWindow)
+delta_var = tk.StringVar(mainWindow, value='1Y')
+# Textbox_____________#
+symbol_entry = tk.Entry(mainWindow, textvariable=symbol_var)
+# Options menu________#
+delta_menu = tk.OptionMenu(mainWindow, delta_var, *[i for i in tDeltas])
 # Buttons_____________#
-select_btn = tk.Button(mainWindow, text='Select File', command=selector)
 save_btn = tk.Button(mainWindow, text='Distribute', command=distribute)
 # Labels______________#
+tBoxLabel = tk.Label(mainWindow, text='Enter symbol as in Yahoo Finance: ')
 o2o_label = tk.Label(mainWindow, text='Select Open to Open bin precision:')
 h2l_label = tk.Label(mainWindow, text='Select High to Low bin precision: ')
 blank_label = tk.Label(mainWindow, text='  ')
@@ -260,24 +283,26 @@ o2o_scale.config(command=o2o_precision_level)
 h2l_scale.config(command=h2l_precision_level)
 
 #______Placing widgets________#
-o2o_label.grid(row=0, column=0, columnspan=2)
-o2o_scale.grid(row=1, column=0, sticky='ew', columnspan=2)
+tBoxLabel.grid(row=0, column=0)
 
-blank_label.grid(row=2, column=0, columnspan=2)
+symbol_entry.grid(row=1, column=0, sticky='ew')
 
-h2l_label.grid(row=3, column=0, columnspan=2)
-h2l_scale.grid(row=4, column=0, sticky='ew', columnspan=2)
+delta_menu.grid(row=1, column=1)
 
-select_btn.grid(row=5, column=0, sticky='w', columnspan=2)
-save_btn.grid(row=5, column=1, padx=50)
+o2o_label.grid(row=2, column=0, columnspan=2)
+o2o_scale.grid(row=3, column=0, sticky='ew', columnspan=2)
+
+blank_label.grid(row=4, column=0, columnspan=2)
+
+h2l_label.grid(row=5, column=0, columnspan=2)
+h2l_scale.grid(row=6, column=0, sticky='ew', columnspan=2)
+
+save_btn.grid(row=7, column=0, padx=50)
 
 # error_label.grid(row=6, column=0, columnspan=2)
 
 mainWindow.mainloop()
 
-if __name__ == "__main__":
-    print(f"File location: {file_location}")
-    print(f"Save Directory: {save_location}")
-    print(f"o2o Precision: {o2o_precision}")
-    print(f"h2l Precision: {h2l_precision}")
-    # print(price_data)
+# print(type(symbol_var.get()))
+# print(h2l_precision)
+# print(o2o_precision)
