@@ -135,7 +135,7 @@ def distribute():
     h2lmin = 0
     h2lmax = price_data['H2L %'].max()
 
-    # 5th largest & smallest h2l returns
+    # 5th largest h2l returns
     h2l_5th_largest = price_data['H2L %'].nlargest(5).iloc[-1]
 
     # Divisor
