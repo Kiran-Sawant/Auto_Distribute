@@ -36,7 +36,7 @@ def frequency(array, dataframe=None, col_name=None):
     start = array[0]
     end = array[1]
     
-    k = dataframe[dataframe[col_name].between(start, end, inclusive=False)]
+    k = dataframe[dataframe[col_name].between(start, end)]
     return k[col_name].count()
 
 """ depricated______________#
@@ -92,18 +92,28 @@ def distribute():
     price_data['O2O %'] = (price_data['Open'].pct_change() * 100).round(3)
     price_data['H2L %'] = (((price_data['High'] - price_data['Low'])/price_data['Low']) * 100).round(3)
 
+    # resorting it ot make it look good
+    price_data.sort_index(ascending=False, inplace=True)
+
     #____________O2O Probability Distribution______________#
     # Creating bin for open 2 open
-    min_ = int(price_data['O2O %'].min() - o2o_precision)
-    max_ = int(price_data['O2O %'].max() + o2o_precision)
-    # Divisor
-    k = int(abs((min_ - max_)/o2o_precision))
+    min_ = price_data['O2O %'].min()
+    max_ = price_data['O2O %'].max()
+
+    # 5th largest & 5th smallest value
+    largest_5th = price_data['O2O %'].nlargest(5).iloc[-1]
+    smallest_5th = price_data['O2O %'].nsmallest(5).iloc[-1]
+
+    # Divisor (number of values in bin)
+    k = int(abs((smallest_5th - largest_5th)/o2o_precision))
 
     # creating bin series
-    bin_ = [min_]
-    for i in range(k):
-        min_ += o2o_precision
-        bin_.append(min_)
+    bin_ = [min_ - o2o_precision, smallest_5th, ]
+    for i in range(k + 1):
+        smallest_5th += o2o_precision
+        bin_.append(smallest_5th)
+
+    bin_.append(max_ + o2o_precision)
 
     bin_Series = pd.Series(bin_).round(3)              # Bin Series
 
@@ -122,21 +132,27 @@ def distribute():
     probability_distribution = pd.concat([frequency_table, prob_table], axis=1)      # TODO merge probability distribution
 
     #_______________Calculating H2L Probability distribution___________________#
-    h2lmin = int(price_data['H2L %'].min())
-    h2lmax = int(price_data['H2L %'].max() + h2l_precision)
+    h2lmin = 0
+    h2lmax = price_data['H2L %'].max()
+
+    # 5th largest h2l returns
+    h2l_5th_largest = price_data['H2L %'].nlargest(5).iloc[-1]
 
     # Divisor
-    k2 = int(abs((h2lmax - h2lmin)/h2l_precision))
+    k2 = int(abs(h2l_5th_largest/h2l_precision))
 
     # creating bin series
-    bin2 = [h2lmin]
-    for i in range(k2):
+    bin2 = [0, ]
+    for i in range(k2 + 1):
         h2lmin += h2l_precision
         bin2.append(h2lmin)
-    h2l_bin_Series = pd.Series(bin2).round(3)
+    bin2.append(h2lmax + h2l_precision)
+    # creating a Series out of bin2 list
+    h2l_bin_Series = pd.Series(bin2).round(2)
 
+    # Counting frequency of bin values & making a series of it
     h2l_frequency_series = h2l_bin_Series.rolling(2).apply(frequency, raw=True, kwargs={'dataframe': price_data, 'col_name': 'H2L %'})
-
+    # Creating Bin Frequency table.
     h2l_frequency_table = pd.concat([h2l_bin_Series, h2l_frequency_series], axis=1)         # TODO merge Frequency Table
     h2l_frequency_table.columns = ['bin', 'Frequency']
     h2l_frequency_table.fillna(value=0, inplace=True)
@@ -224,14 +240,14 @@ def distribute():
     wbSheet.range('A9').value = price_data
     wbSheet.range('H9').options(index=False).value = probability_distribution
     wbSheet.range(f'H{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
-    wbSheet.range('M10').value = open_description
-    wbSheet.range(f'M{len(bin_Series) + 13}').value = h2l_description
+    wbSheet.range('N10').value = open_description
+    wbSheet.range(f'N{len(bin_Series) + 13}').value = h2l_description
     wbSheet.range('B1').value = "Open 2 Open returns %"
     wbSheet.range('C1').value = avgO2O
     wbSheet.range('B4').value = "High 2 Low returns %"
     wbSheet.range('C4').value = avgh2l
     wbSheet.range('E1').value = avg_df
-    wbSheet.range('L1').value = stdDev_table
+    wbSheet.range('M1').value = stdDev_table
     wbSheet.pictures.add(fig)
 
     work_book.save(save_location.name + '.xlsx')
