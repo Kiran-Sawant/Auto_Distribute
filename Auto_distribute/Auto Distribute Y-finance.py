@@ -244,14 +244,14 @@ def distribute():
     wbSheet.range('A9').value = price_data
     wbSheet.range('I9').options(index=False).value = probability_distribution
     wbSheet.range(f'I{len(bin_Series) + 12}').options(index=False).value = h2l_probability_distribution
-    wbSheet.range('O10').value = open_description
-    wbSheet.range(f'O{len(bin_Series) + 13}').value = h2l_description
+    wbSheet.range('N10').value = open_description
+    wbSheet.range(f'N{len(bin_Series) + 13}').value = h2l_description
     wbSheet.range('B1').value = "Open 2 Open returns %"
     wbSheet.range('C1').value = avgO2O
     wbSheet.range('B4').value = "High 2 Low returns %"
     wbSheet.range('C4').value = avgh2l
     wbSheet.range('E1').value = avg_df
-    wbSheet.range('L1').value = stdDev_table
+    wbSheet.range('M1').value = stdDev_table
     wbSheet.pictures.add(fig)
 
     work_book.save(save_location.name + '.xlsx')
