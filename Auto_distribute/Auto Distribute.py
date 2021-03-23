@@ -36,7 +36,7 @@ def frequency(array, dataframe=None, col_name=None):
     start = array[0]
     end = array[1]
     
-    k = dataframe[dataframe[col_name].between(start, end)]
+    k = dataframe[dataframe[col_name].between(start, end, inclusive=False)]
     return k[col_name].count()
 
 """ depricated______________#
@@ -115,9 +115,11 @@ def distribute():
 
     bin_.append(max_ + o2o_precision)
 
-    bin_Series = pd.Series(bin_).round(3)              # Bin Series
+    bin_Series = pd.Series(bin_).round(1)              # Bin Series
 
     frequency_series = bin_Series.rolling(2).apply(frequency, raw=True, kwargs={'dataframe': price_data, 'col_name': 'O2O %'})
+    frequency_series.fillna(0, inplace=True)
+    frequency_series = frequency_series.astype('int32', copy=False)
 
     frequency_table = pd.concat([bin_Series, frequency_series], axis=1)         # TODO merge Frequency Table
     frequency_table.columns = ['bin', 'Frequency']
@@ -148,10 +150,12 @@ def distribute():
         bin2.append(h2lmin)
     bin2.append(h2lmax + h2l_precision)
     # creating a Series out of bin2 list
-    h2l_bin_Series = pd.Series(bin2).round(2)
+    h2l_bin_Series = pd.Series(bin2).round(1)
 
     # Counting frequency of bin values & making a series of it
     h2l_frequency_series = h2l_bin_Series.rolling(2).apply(frequency, raw=True, kwargs={'dataframe': price_data, 'col_name': 'H2L %'})
+    h2l_frequency_series.fillna(0, inplace=True)
+    h2l_frequency_series = h2l_frequency_series.astype('int32', copy=False)
     # Creating Bin Frequency table.
     h2l_frequency_table = pd.concat([h2l_bin_Series, h2l_frequency_series], axis=1)         # TODO merge Frequency Table
     h2l_frequency_table.columns = ['bin', 'Frequency']
