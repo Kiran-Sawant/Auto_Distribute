@@ -19,11 +19,11 @@ The Sheet contains the following things.
   * A statistical Description table for both Open to Open and High to Low.
   * Averages table for negetive and positive returns on Open to Open.
   * A standard Deviation table to analyse the standard deviation of Open to Open returns.
-  * A High to Low and Open to Open perentage change column.
+  * A High to Low and Open to Open percentage change column.
   
 Note.
   - The sheet doesn't come decorated. You will need to take care of tabel bordering, heading and placing the histogram.
-  - Histogram is rendered by matplotlib, if you do not like it, use excels histogram utility.
+  - Histogram is rendered using matplotlib, if you do not like it, use excels histogram utility.
   - All the columns with % sign in their headers are already in percentages, you do not need to format those columns as percentages in excel.
  
 ## Auto Distribute Y-Finance Preview
